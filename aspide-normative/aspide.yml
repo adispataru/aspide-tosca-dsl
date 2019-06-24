@@ -1,0 +1,152 @@
+tosca_definitions_version: alien_dsl_1_2_0
+description: TOSCA ASPIDE Root Types
+template_name: aspide-normative-types
+template_version: 0.0.1-SNAPSHOT
+template_author: AdrianSpataru
+
+
+imports:
+  - "tosca-normative-types:1.0.0-SNAPSHOT"
+  # - "docker-types:1.2.0-SNAPSHOT"
+
+node_types:
+  aspide.nodes.Root:
+    derived_from: tosca.nodes.Root
+    description: The ASPIDE Root Type
+    tags:
+      icon: images/aspide.png
+
+  #compute nodes
+  
+  aspide.nodes.Cnode:
+    derived_from: tosca.nodes.Compute
+    description: Abstract ASPDIE single compute type
+    tags:
+      icon: images/cnode.png
+    capabilities:
+      - host: aspide.capabilities.Cnode
+      - attach: aspide.capabilities.Attachment
+  
+
+  aspide.nodes.Carea:
+    derived_from: aspide.nodes.Cnode
+    description: Abstract ASPDIE compute area type
+    tags:
+      icon: images/carea.png
+    capabilities:
+      - host: aspide.capabilities.Carea
+
+  #service nodes
+
+  aspide.nodes.Task:
+    derived_from: tosca.nodes.SoftwareComponent
+    description: Abstract ASPIDE Task
+    abstract: true
+    tags:
+      icon: images/task.png
+    requirements:
+      - host:
+          capability: aspide.capabilities.Cnode
+          relationship: tosca.relationships.HostedOn
+          occurrences: [1, 1]
+      - input: 
+          capability: aspide.capabilities.DataInput
+          relationship: aspide.relationships.InputFrom
+          occurrences: [0, 1]
+      - output: 
+          capability: aspide.capabilities.DataOutput
+          relationship: aspide.relationships.OutputTo
+          occurrences: [0, 1]
+    interfaces:
+      Standard:
+        create: scripts/create.sh
+        start: 
+          description: Script for starting the service
+          implementation: scripts/start.sh
+        stop: scripts/stop.sh
+
+  aspide.nodes.TaskPool:
+    derived_from: aspide.nodes.Task
+    description: Abstract ASPIDE Task Pool
+    abstract: true
+    tags:
+      icon: images/taskpool.png
+    requirements:
+      - host:
+          capability: aspide.capabilities.Carea
+          relationship: tosca.relationships.HostedOn
+          occurrences: [1, 1]
+  
+
+  #basic data
+  aspide.nodes.Data:
+    derived_from: aspide.nodes.Root
+    description: The base Data type
+    abstract: true
+    tags:
+      icon: /images/data.png
+    properties:
+      id:
+        type: string
+        default: /home/data
+        required: true
+    capabilities:
+      input: aspide.capabilities.DataInput
+      output: aspide.capabilities.DataOutput
+    requirements:
+      - attachment:
+          capability: aspide.capabilities.Attachment
+          relationship: aspide.relationships.AttachData
+
+
+capability_types:
+  aspide.capabilities.Cnode:
+    derived_from: tosca.capabilities.Container
+    description: >
+      The capability to host and run ASPIDE tasks.
+  aspide.capabilities.Carea:
+    derived_from: tosca.capabilities.Container
+    description: >
+      The capability to host and run ASPIDE TaskPools.
+  aspide.capabilities.Attachment:
+    derived_from: tosca.capabilities.Attachment
+    description: >
+      Capability to attach Data to a ASPIDE compute node
+  aspide.capabilities.DataInput:
+    derived_from: tosca.capabilities.Root
+  aspide.capabilities.DataOutput:
+    derived_from: tosca.capabilities.Root
+
+relationship_types:
+
+  aspide.relationships.AttachData:
+    derived_from: tosca.relationships.AttachTo
+    valid_target_types: [ aspide.capabilities.Attachment ]
+    properties:
+      mount_path:
+        type: string
+        required: true
+        description: Specifies where the volume is mounted inside the container.
+        default: '/home/aspide'
+      data_distribution:
+        type: string
+        default: replicate
+        constraints:
+          - valid_values: [replicate, partition]
+      mode:
+        type: string
+        required: true
+        description: Specifies the mode in which the volume is mounted inside the container.
+        default: "RO"
+        constraints:
+          - valid_values: [RO, RW]
+
+  aspide.relationships.InputFrom:
+    derived_from: tosca.relationships.Root
+    valid_target_types: [ aspide.capabilities.DataInput ]
+
+  aspide.relationships.OutputTo:
+    derived_from: tosca.relationships.Root
+    valid_target_types: [ aspide.capabilities.DataOutput ]
+    
+      
