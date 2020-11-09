@@ -33,6 +33,11 @@ node_types:
     description: Abstract ASPDIE compute area type
     tags:
       icon: images/carea.png
+    properties:
+      numNodes: 
+        type: integer
+        default: 2
+        required: true
     capabilities:
       - host: aspide.capabilities.Carea
 
@@ -58,12 +63,20 @@ node_types:
           relationship: aspide.relationships.OutputTo
           occurrences: [0, 1]
     interfaces:
-      Standard:
-        create: scripts/create.sh
-        start: 
-          description: Script for starting the service
-          implementation: scripts/start.sh
-        stop: scripts/stop.sh
+      # Standard:
+      #   create: scripts/create.sh
+      #   start: 
+      #     description: Script for starting the service
+      #     implementation: scripts/start.sh
+      #   stop: scripts/stop.sh
+      DCEX:
+          execute: scripts/main.dcx
+
+  aspide.nodes.DemoTask:
+    derived_from: aspide.nodes.Task
+    description: Demo ASPIDE Task
+    tags:
+      icon: images/task.png
 
   aspide.nodes.TaskPool:
     derived_from: aspide.nodes.Task
@@ -76,13 +89,17 @@ node_types:
           capability: aspide.capabilities.Carea
           relationship: tosca.relationships.HostedOn
           occurrences: [1, 1]
-  
+
+  aspide.nodes.DemoTaskPool:
+    derived_from: aspide.nodes.TaskPool
+    description: Demo ASPIDE Task Pool
+    tags:
+      icon: images/taskpool.png
 
   #basic data
   aspide.nodes.Data:
     derived_from: aspide.nodes.Root
     description: The base Data type
-    abstract: true
     tags:
       icon: /images/data.png
     properties:
@@ -123,20 +140,10 @@ relationship_types:
     derived_from: tosca.relationships.AttachTo
     valid_target_types: [ aspide.capabilities.Attachment ]
     properties:
-      mount_path:
-        type: string
-        required: true
-        description: Specifies where the volume is mounted inside the container.
-        default: '/home/aspide'
-      data_distribution:
-        type: string
-        default: replicate
-        constraints:
-          - valid_values: [replicate, partition]
       mode:
         type: string
         required: true
-        description: Specifies the mode in which the volume is mounted inside the container.
+        description: Specifies the mode in which the volume is mounted inside the node.
         default: "RO"
         constraints:
           - valid_values: [RO, RW]
@@ -144,9 +151,31 @@ relationship_types:
   aspide.relationships.InputFrom:
     derived_from: tosca.relationships.Root
     valid_target_types: [ aspide.capabilities.DataInput ]
-
+    properties:
+      mount_path:
+        type: string
+        required: true
+        description: Specifies where the volume is mounted inside the node.
+        default: '/home/aspide'
+      data_distribution:
+        type: string
+        default: partition
+        constraints:
+          - valid_values: [replicate, partition]
+    
   aspide.relationships.OutputTo:
     derived_from: tosca.relationships.Root
     valid_target_types: [ aspide.capabilities.DataOutput ]
-    
-      
+    properties:
+      path:
+        type: string
+        required: true
+        description: Specifies where the volume is mounted inside the node.
+        default: '/home/aspide'
+
+artifact_types:
+  aspide.artifacts.Implementation.DCEX:
+    derived_from: tosca.artifacts.Implementation
+    description: Script artifact for the Unix Bash shell
+    mime_type: text/dcx
+    file_ext: [ dcx ]
